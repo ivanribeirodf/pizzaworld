@@ -1,6 +1,7 @@
 import { createContext, ReactNode, useState } from "react";
-import { destroyCookie } from 'nookies';
+import { destroyCookie, setCookie, parseCookies } from 'nookies';
 import Router from "next/router";
+import { api } from "../services/apiClients";
 
 type AuthContextData = {
     user: UserProps;
@@ -40,8 +41,32 @@ export function AuthProvider({ children }: AuthProviderProps){
     const isAuthenticated = !!user;
 
     async function signIn({ email, password }: SignInProps){
-       console.log(email)
-       console.log(password)
+       try{
+        const response = await api.post('/login',{
+            email,
+            password
+        })
+        const {id, name, token} = response.data
+
+        setCookie(undefined, '@pizzaWorld.token', token,{
+            maxAge: 60 * 60 * 24 * 30,
+            path:"/"
+        })
+
+        setUser({
+            id,
+            name,
+            email,
+        })
+        //Passar o token para próximas requisiçoes
+        api.defaults.headers['Authorization'] = `Bearer ${token}`
+
+        //Redirecionar para dashboard
+        Router.push('/dashboard')
+
+       } catch(err) {
+        console.log("erro", err)
+       }
 
     }
 
